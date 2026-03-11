@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneo Baby Fútbol - Liga 2026</title>
+
+    <!-- Fuentes estilo tech/neon (Orbitron para títulos, Rajdhani para datos) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Archivo de estilos principal -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Capa de fondo con gradientes dinámicos -->
+    <div class="background-fx"></div>
+
+    <!-- Encabezado de la Aplicación -->
+    <header class="cyber-header">
+        <h1>LIGA <span class="neon-text">2026</span></h1>
+        <div id="lastUpdate" class="update-tag">Cargando fecha...</div>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Contenido principal (Tablas y controles) -->
+        <div class="dashboard-main-content">
+            <!-- PANEL DE CONTROL: Filtros de Torneo y Categoría -->
+            <section class="controls glass-panel">
+                <div class="selectors-group">
+                    <div class="control-item">
+                        <label for="tournamentSelect">CAMPEONATO</label>
+                        <select id="tournamentSelect" class="cyber-select">
+                            <option value="Apertura">Apertura</option>
+                            <option value="Clausura">Clausura</option>
+                            <option value="Anual">Anual (Suma Ambos)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-item" id="categoryWrapper">
+                        <label for="categorySelect">CATEGORÍA</label>
+                        <select id="categorySelect" class="cyber-select">
+                            <option value="">Cargando datos...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botones de navegación principal -->
+                <div class="actions-group">
+                    <button id="btnAcumulada" class="cyber-button">VER ACUMULADO DE CLUBES</button>
+                    <button id="btnEstadisticas" class="cyber-button">VER ESTADÍSTICAS</button>
+                </div>
+            </section>
+
+            <!-- Indicador de carga (se oculta al finalizar fetchData) -->
+            <div id="loader" class="loader-neon">
+                <div class="spinner"></div>
+                <p id="status-indicator">Sincronizando con base de datos...</p>
+            </div>
+
+            <!-- BLOQUE SUPERIOR: Tabla de Posiciones dinámica -->
+            <section id="tableDisplay" class="glass-table-container glass-panel">
+                <div class="table-header">
+                    <h2 id="displayTitle">---</h2>
+                    <div id="displaySubtitle" class="subtitle">---</div>
+                </div>
+
+                <div class="table-scroll">
+                    <table id="mainTable">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Equipo</th>
+                                <th>Pts</th>
+                                <th>PJ</th>
+                                <th>GF</th>
+                                <th>GC</th>
+                                <th>DG</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Filas inyectadas por script.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- BLOQUE INFERIOR: Historial y Fixture (Se muestra solo en categorías) -->
+            <section id="matchesDisplay" class="matches-container" style="display: none;">
+                <div class="matches-grid">
+
+                    <!-- Historial de Partidos Finalizados -->
+                    <div class="match-list-panel glass-panel">
+                        <div class="panel-header">
+                            <h3>Partidos Jugados</h3>
+                            <p class="panel-desc">Resultados procesados</p>
+                        </div>
+                        <div id="historialMatches" class="match-stack">
+                            <!-- Tarjetas de partido inyectadas por JS -->
+                        </div>
+                    </div>
+
+                    <!-- Fixture de Proximos Encuentros (Pendientes) -->
+                    <div class="match-list-panel glass-panel">
+                        <div class="panel-header">
+                            <h3>Próximos Encuentros</h3>
+                            <p class="panel-desc">Calendario fixture</p>
+                        </div>
+                        <div id="fixtureMatches" class="match-stack">
+                            <!-- Tarjetas de fixture inyectadas por JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANELES DE ESTADÍSTICAS (Ocultos por defecto, modo 2x2) -->
+            <section id="statsDisplay" class="stats-container" style="display: none;">
+                <div class="stats-grid">
+
+                    <!-- Tarjeta 1: Ofensiva -->
+                    <div class="stats-card glass-panel">
+                        <h3>MÁXIMA OFENSIVA</h3>
+                        <p class="stats-desc">Equipos con más goles marcados</p>
+                        <div id="topGoleadores" class="mini-list"></div>
+                    </div>
+
+                    <!-- Tarjeta 2: Defensa -->
+                    <div class="stats-card glass-panel">
+                        <h3>MURO DEFENSIVO</h3>
+                        <p class="stats-desc">Equipos con menos goles recibidos</p>
+                        <div id="topDefensa" class="mini-list"></div>
+                    </div>
+
+                    <!-- Tarjeta 3: Balance DG -->
+                    <div class="stats-card glass-panel">
+                        <h3>BALANCE DE GOL</h3>
+                        <p class="stats-desc">Diferencia neta (Goles a favor vs contra)</p>
+                        <div id="balanceGoles" class="mini-list"></div>
+                    </div>
+
+                    <!-- Tarjeta 4: Rendimiento % -->
+                    <div class="stats-card glass-panel">
+                        <h3>RENDIMIENTO %</h3>
+                        <p class="stats-desc">Puntos obtenidos vs posibles</p>
+                        <div id="efectividadList" class="efectividad-list"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- BARRA LATERAL: Carrusel de Publicidad -->
+        <aside class="ad-sidebar glass-panel">
+            <div class="ad-header">PUBLICIDAD</div>
+            <div class="ad-container">
+                <div class="ad-rail" id="adRail">
+                    <!-- Las imágenes deben ser proporcionadas por el usuario como ad1.png, ad2.png, etc. en la carpeta publicidad/ -->
+                    <div class="ad-item"><img src="publicidad/ad1.png" alt="Publicidad 1"
+                            onerror="this.classList.add('hide-img')">
+                        <div class="ad-fallback">Sponsor 1</div>
+                    </div>
+                    <div class="ad-item"><img src="publicidad/ad2.png" alt="Publicidad 2"
+                            onerror="this.classList.add('hide-img')">
+                        <div class="ad-fallback">Sponsor 2</div>
+                    </div>
+                    <div class="ad-item"><img src="publicidad/ad3.png" alt="Publicidad 3"
+                            onerror="this.classList.add('hide-img')">
+                        <div class="ad-fallback">Sponsor 3</div>
+                    </div>
+                    <div class="ad-item"><img src="publicidad/ad4.png" alt="Publicidad 4"
+                            onerror="this.classList.add('hide-img')">
+                        <div class="ad-fallback">Sponsor 4</div>
+                    </div>
+                    <div class="ad-item"><img src="publicidad/ad5.png" alt="Publicidad 5"
+                            onerror="this.classList.add('hide-img')">
+                        <div class="ad-fallback">Sponsor 5</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Script principal de lógica de negocio -->
+    <script src="script.js"></script>
+</body>
+
+</html>
