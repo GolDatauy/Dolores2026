@@ -112,22 +112,22 @@ html {
 .collaborators-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 12px;
+    gap: 2px;
+    padding: 2px;
     background: rgba(0, 0, 0, 0.4);
 }
 
 .collab-item {
     aspect-ratio: 1 / 1;
-    background: rgba(5, 5, 5, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0.75rem;
+    background: transparent; /* Eliminamos el fondo individual */
+    border: none;            /* Eliminamos el borde que quitaba espacio */
+    border-radius: 0;        /* Sin esquinas redondeadas para que peguen perfecto */
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    padding: 6px;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    padding: 0;              /* Cero margen interno: la imagen ocupa el 100% */
+    transition: transform 0.2s ease;
 }
 
 .collab-item:hover {
@@ -138,7 +138,7 @@ html {
 .collab-item img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
 }
 
 @media (min-width: 768px) {
