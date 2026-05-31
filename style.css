@@ -88,7 +88,7 @@ html {
     text-shadow: var(--neon-glow);
 }
 
-/* --- BARRA DE PUBLICIDAD HORIZONTAL --- */
+/* --- SECCIÓN COLABORADORES GRILLA OPTIMIZADA (3x2) --- */
 .ad-banner-strip {
     max-width: 1000px;
     margin: 0 auto 20px;
@@ -99,36 +99,53 @@ html {
 
 .ad-banner-label {
     text-align: center;
-    padding: 6px;
+    padding: 8px;
     font-family: var(--font-heading);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     letter-spacing: 2px;
     color: var(--neon-blue);
     background: rgba(0, 229, 255, 0.08);
     border-bottom: 1px solid var(--glass-border);
-    opacity: 0.7;
+    opacity: 0.9;
 }
 
-.ad-banner-track {
+.collaborators-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.collab-item {
+    aspect-ratio: 1 / 1;
+    background: rgba(5, 5, 5, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
     display: flex;
-    flex-direction: row;
-    gap: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 6px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.collab-item:hover {
+    border-color: var(--neon-blue);
+    transform: scale(1.03);
+}
+
+.collab-item img {
     width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
+    height: 100%;
+    object-fit: contain;
 }
 
-.ad-banner-track::-webkit-scrollbar {
-    display: none;
-}
-
-.ad-banner-track .ad-item {
-    height: 110px;
-    min-width: 20%;
-    flex: 1;
-    border-bottom: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 8px;
+@media (min-width: 768px) {
+    .collaborators-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 15px;
+    }
 }
 
 .ad-banner-track .ad-item:last-child {
