@@ -750,14 +750,7 @@ td {
 
 /* --- RESPONSIVIDAD --- */
 
-/* Tablets: la barra de publicidad muestra menos sponsors */
-@media (max-width: 768px) {
-    .ad-banner-track .ad-item {
-        min-width: 33.33%;
-        flex: 0 0 33.33%;
-        height: 90px;
-    }
-}
+
 
 @media (max-width: 900px) {
     .stats-grid {
