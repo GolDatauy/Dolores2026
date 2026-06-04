@@ -596,9 +596,47 @@ td {
     animation: fadeIn 0.5s ease-out;
 }
 
-.panel-header {
+.match-list-panel {
+    padding: 20px;
+}
+
+summary.panel-header {
     text-align: center;
     margin-bottom: 25px;
+    list-style: none;
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+summary.panel-header::-webkit-details-marker {
+    display: none;
+}
+
+/* Neon arrow indicator */
+summary.panel-header::after {
+    content: 'Mostrar menos ▲';
+    font-size: 0.75rem;
+    color: var(--neon-blue);
+    text-shadow: var(--neon-glow);
+    margin-top: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: var(--font-heading);
+    transition: opacity 0.2s ease;
+}
+
+/* Closed state styling adjustments */
+details:not([open]) summary.panel-header {
+    margin-bottom: 0;
+}
+
+details:not([open]) summary.panel-header::after {
+    content: 'Mostrar más ▼';
 }
 
 .matches-grid {
@@ -794,15 +832,46 @@ td {
     }
 
     .match-card {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 10px;
+    }
+
+    .match-fecha {
+        grid-column: 1 / -1;
+        justify-self: center;
+        width: 100%;
+        margin-bottom: 2px;
+        font-size: 0.7rem;
+    }
+
+    .m-team {
+        font-size: 0.95rem;
+    }
+
+    .match-card .m-team:nth-child(2) {
+        justify-content: center;
         text-align: center;
-        gap: 8px;
-        padding: 15px;
+        flex-direction: row-reverse;
+    }
+
+    .match-card .m-team:nth-child(4) {
+        justify-content: center;
+        text-align: center;
     }
 
     .m-score {
-        margin: 5px auto;
+        margin: 0;
         width: fit-content;
+        font-size: 1rem;
+        min-width: 55px;
+        padding: 2px 6px;
+    }
+
+    .m-vs {
+        margin: 0;
+        font-size: 0.8rem;
     }
 
     .table-header h2 {

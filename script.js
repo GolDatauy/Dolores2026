@@ -168,8 +168,11 @@ async function init() {
         populateCategories();
         loader.style.display = 'none';
 
-        // Renderizado inicial: Primera categoría cargada
-        if (categories.length > 0) {
+        // Renderizado inicial: Categoría 2018 por defecto si existe, sino la primera
+        if (categories.includes("2018")) {
+            categorySelect.value = "2018";
+            updateDisplay();
+        } else if (categories.length > 0) {
             categorySelect.value = categories[0];
             updateDisplay();
         } else {
@@ -195,6 +198,15 @@ async function init() {
     categorySelect.addEventListener('change', () => {
         if (currentMode !== 'standard' && currentMode !== 'estadisticas') switchMode('standard');
         updateDisplay();
+
+        // Registrar evento en Google Analytics
+        const selectedCat = categorySelect.value;
+        if (selectedCat && typeof gtag === 'function') {
+            gtag('event', 'select_category', {
+                'event_category': 'Engagement',
+                'event_label': selectedCat
+            });
+        }
     });
 
     // Botón Tabla Acumulada
@@ -213,6 +225,14 @@ async function init() {
             switchMode('standard');
         } else {
             switchMode('estadisticas');
+
+            // Registrar evento al abrir estadísticas en Google Analytics
+            if (typeof gtag === 'function') {
+                gtag('event', 'view_statistics', {
+                    'event_category': 'Engagement',
+                    'event_label': categorySelect.value || 'General'
+                });
+            }
         }
         updateDisplay();
     });
@@ -237,6 +257,14 @@ async function init() {
         teamChartSel.addEventListener('change', () => {
             selectedTeamChart = teamChartSel.value;
             updateTeamCharts();
+
+            // Registrar evento al seleccionar equipo en estadísticas
+            if (selectedTeamChart && typeof gtag === 'function') {
+                gtag('event', 'select_team_stats', {
+                    'event_category': 'Engagement',
+                    'event_label': selectedTeamChart
+                });
+            }
         });
     }
 
@@ -732,32 +760,38 @@ function renderMatches() {
 function populateTeamChartSelectors() {
     const teamChartSel = document.getElementById('teamChartSelect');
     if (teamChartSel && teamChartSel.options.length === 0) {
+        const placeholder = document.createElement('option');
+        placeholder.value = "";
+        placeholder.textContent = "Seleccione Equipo";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        teamChartSel.appendChild(placeholder);
+
         CLUBS_LIST.sort().forEach(t => {
             const option = document.createElement('option');
             option.value = t;
             option.textContent = t;
             teamChartSel.appendChild(option);
         });
-        teamChartSel.selectedIndex = 0;
-        selectedTeamChart = teamChartSel.value;
+        selectedTeamChart = "";
     }
 
     const teamCatChartSel = document.getElementById('teamCatChartSelect');
     if (teamCatChartSel && teamCatChartSel.options.length === 0) {
+        const placeholder = document.createElement('option');
+        placeholder.value = "";
+        placeholder.textContent = "Seleccione Categoría";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        teamCatChartSel.appendChild(placeholder);
+
         categories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat;
             option.textContent = cat;
             teamCatChartSel.appendChild(option);
         });
-        
-        // Sincronizar con la categoría principal al inicio
-        if (categorySelect.value && categories.includes(categorySelect.value)) {
-            teamCatChartSel.value = categorySelect.value;
-        } else if (teamCatChartSel.options.length > 0) {
-            teamCatChartSel.selectedIndex = 0;
-        }
-        selectedTeamCatChart = teamCatChartSel.value;
+        selectedTeamCatChart = "";
     }
 }
 
@@ -765,13 +799,16 @@ function populateTeamChartSelectors() {
  * Renderiza los gráficos de evolución (Goles Favor y Goles Contra) para el equipo seleccionado
  */
 function renderTeamCharts(matchesArray) {
-    if (!selectedTeamChart) return;
+    if (!selectedTeamChart || !selectedTeamCatChart) {
+        if (chartGF) { chartGF.destroy(); chartGF = null; }
+        if (chartGC) { chartGC.destroy(); chartGC = null; }
+        return;
+    }
 
-    // Filtrar partidos jugados del equipo
+    // Filtrar todos los partidos del equipo (jugados y pendientes), excluyendo fechas libres
     const teamMatches = matchesArray.filter(m => 
         (m.Local === selectedTeamChart || m.Visitante === selectedTeamChart) &&
-        (m.Estado || "").trim().toLowerCase() === "jugado" &&
-        m.Goles_L !== "" && m.Goles_V !== ""
+        !isLibre(m.Local) && !isLibre(m.Visitante)
     );
 
     // Ordenar por Torneo y luego por fecha (extraer número)
@@ -795,16 +832,25 @@ function renderTeamCharts(matchesArray) {
         const isClausura = (m.Torneo || "Apertura").trim().toLowerCase() === "clausura";
         labels.push((isClausura ? "CF" : "AF") + num);
         
-        let gf = 0, gc = 0, rival = "";
+        let gf = null, gc = null, rival = "";
+        const isPlayed = (m.Estado || "").trim().toLowerCase() === "jugado" && m.Goles_L !== "" && m.Goles_V !== "";
         
         if (m.Local === selectedTeamChart) {
-            gf = parseInt(m.Goles_L) || 0;
-            gc = parseInt(m.Goles_V) || 0;
             rival = m.Visitante;
+            if (isPlayed) {
+                gf = parseInt(m.Goles_L);
+                gc = parseInt(m.Goles_V);
+                if (isNaN(gf)) gf = 0;
+                if (isNaN(gc)) gc = 0;
+            }
         } else {
-            gf = parseInt(m.Goles_V) || 0;
-            gc = parseInt(m.Goles_L) || 0;
             rival = m.Local;
+            if (isPlayed) {
+                gf = parseInt(m.Goles_V);
+                gc = parseInt(m.Goles_L);
+                if (isNaN(gf)) gf = 0;
+                if (isNaN(gc)) gc = 0;
+            }
         }
         
         gfData.push(gf);
@@ -857,7 +903,7 @@ function renderTeamCharts(matchesArray) {
     gradGF.addColorStop(1, 'rgba(255, 0, 255, 0.0)');
 
     chartGF = new Chart(ctx1, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: labels,
             datasets: [{
@@ -865,12 +911,9 @@ function renderTeamCharts(matchesArray) {
                 data: gfData,
                 borderColor: '#ff00ff',
                 backgroundColor: gradGF,
-                borderWidth: 3,
-                pointBackgroundColor: '#00e5ff',
-                pointBorderColor: '#fff',
-                pointRadius: 5,
-                fill: true,
-                tension: 0.4
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: 'bottom'
             }],
             _rivalLogos: rivalLogos
         },
@@ -888,7 +931,7 @@ function renderTeamCharts(matchesArray) {
     gradGC.addColorStop(1, 'rgba(0, 229, 255, 0.0)');
 
     chartGC = new Chart(ctx2, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: labels,
             datasets: [{
@@ -896,12 +939,9 @@ function renderTeamCharts(matchesArray) {
                 data: gcData,
                 borderColor: '#00e5ff',
                 backgroundColor: gradGC,
-                borderWidth: 3,
-                pointBackgroundColor: '#ff00ff',
-                pointBorderColor: '#fff',
-                pointRadius: 5,
-                fill: true,
-                tension: 0.4
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: 'bottom'
             }],
             _rivalLogos: rivalLogos
         },
