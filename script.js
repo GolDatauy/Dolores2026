@@ -869,6 +869,8 @@ function renderTeamCharts(matchesArray) {
     const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        barPercentage: 0.65,
+        categoryPercentage: 0.8,
         plugins: {
             legend: { display: false },
             tooltip: {
@@ -899,8 +901,8 @@ function renderTeamCharts(matchesArray) {
     if (chartGF) chartGF.destroy();
     
     const gradGF = ctx1.createLinearGradient(0, 0, 0, 400);
-    gradGF.addColorStop(0, 'rgba(255, 0, 255, 0.5)');
-    gradGF.addColorStop(1, 'rgba(255, 0, 255, 0.0)');
+    gradGF.addColorStop(0, 'rgba(0, 255, 102, 0.5)');
+    gradGF.addColorStop(1, 'rgba(0, 255, 102, 0.0)');
 
     chartGF = new Chart(ctx1, {
         type: 'bar',
@@ -909,7 +911,7 @@ function renderTeamCharts(matchesArray) {
             datasets: [{
                 label: 'Goles Favor',
                 data: gfData,
-                borderColor: '#ff00ff',
+                borderColor: '#00ff66',
                 backgroundColor: gradGF,
                 borderWidth: 2,
                 borderRadius: 6,
@@ -927,8 +929,8 @@ function renderTeamCharts(matchesArray) {
     if (chartGC) chartGC.destroy();
 
     const gradGC = ctx2.createLinearGradient(0, 0, 0, 400);
-    gradGC.addColorStop(0, 'rgba(0, 229, 255, 0.5)');
-    gradGC.addColorStop(1, 'rgba(0, 229, 255, 0.0)');
+    gradGC.addColorStop(0, 'rgba(255, 51, 102, 0.5)');
+    gradGC.addColorStop(1, 'rgba(255, 51, 102, 0.0)');
 
     chartGC = new Chart(ctx2, {
         type: 'bar',
@@ -937,7 +939,7 @@ function renderTeamCharts(matchesArray) {
             datasets: [{
                 label: 'Goles Contra',
                 data: gcData,
-                borderColor: '#00e5ff',
+                borderColor: '#ff3366',
                 backgroundColor: gradGC,
                 borderWidth: 2,
                 borderRadius: 6,

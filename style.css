@@ -906,6 +906,9 @@ details:not([open]) summary.panel-header::after {
     .chart-wrapper {
         height: 280px;
     }
+    .chart-scroll-container {
+        min-width: 580px;
+    }
     .team-evolution-controls .control-item {
         min-width: 100%;
     }
