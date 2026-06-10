@@ -25,7 +25,7 @@
         rel="stylesheet">
 
     <!-- Archivo de estilos principal -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.0">
     <!-- Chart.js para gráficos de evolución -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
@@ -47,7 +47,12 @@
     <!-- Encabezado de la Aplicación -->
     <header class="cyber-header">
         <h1>LIGA <span class="neon-text">2026</span></h1>
-        <div id="lastUpdate" class="update-tag">Cargando fecha...</div>
+        <div class="header-info">
+            <div id="lastUpdate" class="update-tag">Cargando fecha...</div>
+        </div>
+        <button id="btnSync" class="btn-sync" title="Forzar actualización de datos">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+        </button>
     </header>
 
     <!-- BARRA DE PUBLICIDAD HORIZONTAL (debajo del título) -->
@@ -231,6 +236,8 @@
             </section>
         </div>
     </main>
+
+
 
     <!-- Script principal de lógica de negocio -->
     <script src="script.js"></script>

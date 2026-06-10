@@ -58,6 +58,7 @@ html {
 .cyber-header {
     text-align: center;
     padding: 2rem 0 1.5rem;
+    position: relative;
 }
 
 .cyber-header h1 {
@@ -75,12 +76,57 @@ html {
 
 .update-tag {
     font-family: var(--font-body);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--neon-blue);
     text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 5px;
+    letter-spacing: 1px;
     opacity: 0.8;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.btn-sync {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: rgba(0, 229, 255, 0.05);
+    color: var(--neon-blue);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.05);
+}
+
+.btn-sync:hover {
+    background: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+    transform: translateY(-50%) scale(1.05);
+    border: 1px solid rgba(0, 229, 255, 0.6);
+}
+
+.btn-sync:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.btn-sync.syncing svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
 }
 
 .neon-text {
@@ -467,7 +513,6 @@ td {
 }
 
 .chart-scroll-container {
-    min-width: 750px; /* Ancho mínimo para que entren holgadamente hasta 16 fechas y escudos */
     height: 100%;
 }
 
@@ -540,7 +585,25 @@ td {
     box-shadow: 0 0 15px rgba(0, 255, 213, 0.4);
 }
 
-/* Balance DG */
+.dg-item {
+    margin-bottom: 18px;
+}
+
+.dg-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.dg-info .team-label {
+    display: flex;
+    align-items: center;
+}
+
+/* Balance de Gol (DG) */
 .dg-bar-container {
     height: 10px;
     background: rgba(255, 255, 255, 0.05);
@@ -661,6 +724,37 @@ details:not([open]) summary.panel-header::after {
 .match-card:hover {
     transform: translateX(5px);
     background: rgba(255, 255, 255, 0.05);
+}
+
+.match-parcial {
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 215, 0, 0.05)) !important;
+}
+
+.m-score-parcial {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    margin: 0 10px;
+    line-height: 1.1;
+}
+
+.badge-parcial {
+    font-size: 0.6rem;
+    background-color: #ffd700;
+    color: #000;
+    padding: 2px 5px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 900;
+    margin-bottom: 2px;
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 .match-fecha {
@@ -907,9 +1001,75 @@ details:not([open]) summary.panel-header::after {
         height: 280px;
     }
     .chart-scroll-container {
-        min-width: 580px;
+        /* min-width managed dynamically by js */
     }
     .team-evolution-controls .control-item {
         min-width: 100%;
     }
+}
+
+/* ==============================================================
+   FOOTER PROFESIONAL Y LOGO SKYBLUE
+   ============================================================== */
+.site-footer {
+    margin-top: 50px;
+    padding: 40px 20px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 229, 255, 0.05));
+    border-top: 1px solid rgba(0, 229, 255, 0.2);
+    text-align: center;
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
+
+.creator-logo-wrapper {
+    padding: 0;
+    background: transparent;
+}
+
+.creator-logo {
+    height: 70px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.creator-logo:hover {
+    transform: scale(1.05);
+}
+
+.footer-contact {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.footer-contact a {
+    color: #00e5ff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.footer-contact a:hover {
+    color: #fff;
+    text-shadow: 0 0 10px #00e5ff;
+}
+
+.footer-copyright {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    opacity: 0.5;
+    margin-top: 15px;
 }

@@ -139,6 +139,7 @@ const btnEstadisticas = document.getElementById('btnEstadisticas');
 const displayTitle = document.getElementById('displayTitle');
 const displaySubtitle = document.getElementById('displaySubtitle');
 const tableBody = document.getElementById('tableBody');
+const btnSync = document.getElementById('btnSync');
 
 // Contenedores de Estadísticas (Barras)
 const topGoleadores = document.getElementById('topGoleadores');
@@ -236,6 +237,20 @@ async function init() {
         }
         updateDisplay();
     });
+
+    if (btnSync) {
+        btnSync.addEventListener('click', async () => {
+            if (btnSync.classList.contains('syncing')) return;
+            btnSync.classList.add('syncing');
+            btnSync.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`;
+            
+            await fetchData();
+            updateDisplay();
+            
+            btnSync.classList.remove('syncing');
+            btnSync.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`;
+        });
+    }
 
     // --- REGRESAR A INICIO (CLIC EN TÍTULO) ---
     const mainTitle = document.querySelector('.cyber-header h1');
@@ -347,13 +362,14 @@ function switchMode(mode) {
  */
 async function fetchData() {
     console.log("Sincronizando con base de datos...");
-    // Reordenamos: 'cloud' primero porque es el que mejor funciona para el usuario y evita errores en consola
-    const proxies = ['cloud', 'corsproxy', 'allorigins'];
+    // Reordenamos: 'corsproxy' primero para evitar errores 522/CORS en consola por parte de codetabs (cloud)
+    const proxies = ['corsproxy', 'allorigins', 'cloud'];
     let success = false;
 
     for (const p of proxies) {
         try {
-            let url = getProxy(DATA_URL, p);
+            const bustedUrl = `${DATA_URL}&_t=${Date.now()}`;
+            let url = getProxy(bustedUrl, p);
             const response = await fetch(url);
             if (!response.ok) throw new Error();
             const text = await response.text();
@@ -511,14 +527,7 @@ function renderStats() {
 
     const standingsData = calcStandings(matches);
 
-    // Asegurar que los 9 clubes aparezcan aunque tengan 0 datos
-    const dataMap = {};
-    CLUBS_LIST.forEach(club => {
-        dataMap[club] = { team: club, Pts: 0, PJ: 0, GF: 0, GC: 0, DG: 0 };
-    });
-
-    standingsData.forEach(s => { dataMap[s.team] = s; });
-    const finalData = Object.values(dataMap);
+    const finalData = [...standingsData];
 
     // 1. TOP GOLEADORES (Ofensiva)
     const scorers = [...finalData].sort((a, b) => b.GF - a.GF || a.team.localeCompare(b.team));
@@ -563,13 +572,13 @@ function renderStats() {
         const width = (Math.abs(s.DG) / maxDG) * 100;
         const type = s.DG >= 0 ? 'positive' : 'negative';
         return `
-            <div class="balance-item">
-                <div class="balance-info">
+            <div class="dg-item">
+                <div class="dg-info">
                     <div class="team-label">
                         ${getLogoHTML(s.team, "mini-logo")}
                         <span>${s.team}</span>
                     </div>
-                    <span class="dg-badge ${type}">DG: ${s.DG > 0 ? '+' : ''}${s.DG}</span>
+                    <span class="dg-value ${type}">${s.DG > 0 ? '+'+s.DG : s.DG}</span>
                 </div>
                 <div class="dg-bar-container"><div class="dg-bar-fill ${type}" style="width: ${width}%"></div></div>
             </div>`;
@@ -727,31 +736,61 @@ function renderMatches() {
         matches = matches.filter(m => (m.Torneo || "").trim().toLowerCase() === "clausura");
     }
 
-    const played = matches.filter(m => (m.Estado || "").trim().toLowerCase() === "jugado" && m.Goles_L !== "" && m.Goles_V !== "");
+    const played = matches.filter(m => {
+        const est = (m.Estado || "").trim().toLowerCase();
+        return (est === "jugado" || est === "no finalizado") && m.Goles_L !== "" && m.Goles_V !== "";
+    });
+
+    // Ordenar jugados por Fecha descendente (para que lo más reciente quede arriba)
+    played.sort((a, b) => {
+        const numA = parseInt((a.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
+        const numB = parseInt((b.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
+        return numB - numA;
+    });
+
     const pending = matches.filter(m => (m.Estado || "").trim().toLowerCase() !== "jugado");
 
     // Render Jugados (con resaltado de ganador)
     historialMatches.innerHTML = played.length === 0 ? `<p class="empty-msg">No hay jugados.</p>` :
         played.map(m => {
             const gl = parseInt(m.Goles_L), gv = parseInt(m.Goles_V);
+            const isParcial = (m.Estado || "").trim().toLowerCase() === "no finalizado";
+            
+            const middleContent = isParcial 
+                ? `<div class="m-score-parcial"><span class="badge-parcial">PARCIAL</span><span>${gl} - ${gv}</span></div>`
+                : `<div class="m-score">${gl} - ${gv}</div>`;
+            const extraClass = isParcial ? "match-parcial" : "";
+            
+            // Si es parcial, no hay ganador todavía
+            const winLClass = (!isParcial && gl > gv) ? 'winner' : '';
+            const winVClass = (!isParcial && gv > gl) ? 'winner' : '';
+
             return `
-                <div class="match-card">
+                <div class="match-card ${extraClass}">
                     <div class="match-fecha">${m.Fecha || 'F. Pend'}</div>
-                    <div class="m-team ${gl > gv ? 'winner' : ''}">${getLogoHTML(m.Local, "match-logo")} ${m.Local}</div>
-                    <div class="m-score">${gl} - ${gv}</div>
-                    <div class="m-team ${gv > gl ? 'winner' : ''}">${getLogoHTML(m.Visitante, "match-logo")} ${m.Visitante}</div>
+                    <div class="m-team ${winLClass}">${getLogoHTML(m.Local, "match-logo")} ${m.Local}</div>
+                    ${middleContent}
+                    <div class="m-team ${winVClass}">${getLogoHTML(m.Visitante, "match-logo")} ${m.Visitante}</div>
                 </div>`;
         }).join('');
 
     // Render Pendientes (estilo minimalista)
-    fixtureMatches.innerHTML = pending.length === 0 ? `<p class="empty-msg">No hay fecha libre.</p>` :
-        pending.map(m => `
-                <div class="match-card">
+    fixtureMatches.innerHTML = pending.length === 0 ? `<p class="empty-msg">No hay partidos pendientes.</p>` :
+        pending.map(m => {
+            const isParcial = (m.Estado || "").trim().toLowerCase() === "no finalizado";
+            const middleContent = isParcial && m.Goles_L !== "" && m.Goles_V !== "" 
+                ? `<div class="m-score-parcial"><span class="badge-parcial">PARCIAL</span><span>${m.Goles_L} - ${m.Goles_V}</span></div>`
+                : `<div class="m-vs">VS</div>`;
+            const extraClass = isParcial ? "match-parcial" : "";
+
+            return `
+                <div class="match-card ${extraClass}">
                     <div class="match-fecha">${m.Fecha || 'F. Prox'}</div>
                     <div class="m-team">${getLogoHTML(m.Local, "match-logo")} ${m.Local}</div>
-                    <div class="m-vs">VS</div>
+                    ${middleContent}
                     <div class="m-team">${getLogoHTML(m.Visitante, "match-logo")} ${m.Visitante}</div>
-                </div>`).join('');
+                </div>`;
+        }).join('');
 }
 
 /**
@@ -895,6 +934,12 @@ function renderTeamCharts(matchesArray) {
         }
     };
 
+    const scrollContainers = document.querySelectorAll('.chart-scroll-container');
+    const dynamicWidth = Math.max(100, (labels.length / 5) * 100);
+    scrollContainers.forEach(container => {
+        container.style.minWidth = dynamicWidth + '%';
+    });
+
     const ctxGF = document.getElementById('chartGF');
     if(!ctxGF) return;
     const ctx1 = ctxGF.getContext('2d');
@@ -915,7 +960,10 @@ function renderTeamCharts(matchesArray) {
                 backgroundColor: gradGF,
                 borderWidth: 2,
                 borderRadius: 6,
-                borderSkipped: 'bottom'
+                borderSkipped: 'bottom',
+                maxBarThickness: 35,
+                categoryPercentage: 0.7,
+                barPercentage: 0.9
             }],
             _rivalLogos: rivalLogos
         },
@@ -943,7 +991,10 @@ function renderTeamCharts(matchesArray) {
                 backgroundColor: gradGC,
                 borderWidth: 2,
                 borderRadius: 6,
-                borderSkipped: 'bottom'
+                borderSkipped: 'bottom',
+                maxBarThickness: 35,
+                categoryPercentage: 0.7,
+                barPercentage: 0.9
             }],
             _rivalLogos: rivalLogos
         },
