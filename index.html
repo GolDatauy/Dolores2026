@@ -26,8 +26,6 @@
 
     <!-- Archivo de estilos principal -->
     <link rel="stylesheet" href="style.css?v=2.0">
-    <!-- Chart.js para gráficos de evolución -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
     <!-- Google tag (gtag.js) - Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YYNTV24HZN"></script>
@@ -191,43 +189,40 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN DE GRÁFICOS DE EVOLUCIÓN POR EQUIPO -->
-                <div id="teamEvolutionSection" class="team-evolution-section">
+                <!-- SECCIÓN DE RESULTADOS POR EQUIPO (APERTURA Y CLAUSURA) -->
+                <div id="teamResultsSection" class="team-results-section">
 
                     <!-- Selector de Equipo y Categoría -->
-                    <div class="team-evolution-controls glass-panel">
+                    <div class="team-results-controls glass-panel">
                         <div class="control-item">
-                            <label for="teamChartSelect">EQUIPO</label>
-                            <select id="teamChartSelect" class="cyber-select"></select>
+                            <label for="teamStatsSelect">EQUIPO</label>
+                            <select id="teamStatsSelect" class="cyber-select"></select>
                         </div>
                         <div class="control-item">
-                            <label for="teamCatChartSelect">CATEGORÍA</label>
-                            <select id="teamCatChartSelect" class="cyber-select"></select>
+                            <label for="teamCatStatsSelect">CATEGORÍA</label>
+                            <select id="teamCatStatsSelect" class="cyber-select"></select>
                         </div>
                     </div>
 
-                    <!-- Gráfico 1: Goles Convertidos -->
-                    <div class="chart-card glass-panel">
-                        <div class="chart-card-header">
-                            <h3 class="chart-title">GOLES CONVERTIDOS</h3>
-                            <p class="chart-desc">Goles marcados por fecha</p>
-                        </div>
-                        <div class="chart-wrapper">
-                            <div class="chart-scroll-container">
-                                <canvas id="chartGF"></canvas>
+                    <!-- Grilla con 2 listas: Apertura y Clausura -->
+                    <div class="team-tournaments-grid">
+                        <div class="tournament-card glass-panel">
+                            <div class="tournament-card-header">
+                                <h3 class="tournament-title">TORNEO APERTURA</h3>
+                                <p class="tournament-desc">Resultados y fixture</p>
+                            </div>
+                            <div id="aperturaResultsList" class="match-stack">
+                                <!-- Tarjetas inyectadas por JS -->
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Gráfico 2: Goles Recibidos -->
-                    <div class="chart-card glass-panel">
-                        <div class="chart-card-header">
-                            <h3 class="chart-title">GOLES RECIBIDOS</h3>
-                            <p class="chart-desc">Goles encajados por fecha</p>
-                        </div>
-                        <div class="chart-wrapper">
-                            <div class="chart-scroll-container">
-                                <canvas id="chartGC"></canvas>
+                        <div class="tournament-card glass-panel">
+                            <div class="tournament-card-header">
+                                <h3 class="tournament-title">TORNEO CLAUSURA</h3>
+                                <p class="tournament-desc">Resultados y fixture</p>
+                            </div>
+                            <div id="clausuraResultsList" class="match-stack">
+                                <!-- Tarjetas inyectadas por JS -->
                             </div>
                         </div>
                     </div>
