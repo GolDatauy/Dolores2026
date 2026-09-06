@@ -450,7 +450,14 @@ td {
     margin-top: 10px;
 }
 
-.team-evolution-controls {
+.team-results-section {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.team-results-controls {
     padding: 1rem 1.5rem;
     display: flex;
     align-items: center;
@@ -459,61 +466,134 @@ td {
     flex-wrap: wrap;
 }
 
-.team-evolution-controls .control-item {
+.team-results-controls .control-item {
     align-items: center;
-    min-width: 260px;
+    min-width: 240px;
 }
 
-.chart-card {
-    padding: 20px 20px 0 20px;
-    overflow: hidden;
+.team-tournaments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
 }
 
-.chart-card-header {
+.tournament-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tournament-card-header {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.15);
 }
 
-.chart-title {
+.tournament-title {
     color: var(--neon-blue);
     font-family: var(--font-heading);
-    font-size: 1rem;
+    font-size: 1.1rem;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-.chart-desc {
-    font-size: 0.85rem;
-    color: #fff;
-    opacity: 0.9;
+.tournament-desc {
+    font-size: 0.8rem;
+    color: #888;
     margin-top: 4px;
 }
 
-.chart-wrapper {
-    /* Extra bottom padding so rival logos have space below the X axis */
-    padding-bottom: 44px;
-    position: relative;
-    height: 350px;
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: var(--neon-blue) rgba(0,0,0,0.3);
+/* Tarjeta de partido compacta en Estadísticas */
+.team-match-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
-.chart-wrapper::-webkit-scrollbar {
-    height: 8px;
-}
-.chart-wrapper::-webkit-scrollbar-thumb {
-    background: var(--neon-blue);
-    border-radius: 4px;
-}
-.chart-wrapper::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.3);
+.team-match-card:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.06);
 }
 
-.chart-scroll-container {
-    height: 100%;
+.team-match-card .m-team {
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ccc;
+    transition: color 0.2s ease;
+}
+
+.team-match-card .m-team:first-child {
+    justify-content: flex-end;
+    text-align: right;
+    flex-direction: row-reverse;
+}
+
+.team-match-card .m-team:last-child {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.team-match-card .match-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* 🟢 VICTORIA: Fuente verde y borde sutil */
+.team-match-card.res-win {
+    border-color: rgba(0, 255, 102, 0.4);
+    background: linear-gradient(90deg, rgba(0, 255, 102, 0.06), rgba(0, 255, 102, 0.02));
+}
+.team-match-card.res-win .m-team {
+    color: #00ff66 !important;
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+    font-weight: 700;
+}
+.team-match-card.res-win .m-score {
+    border-color: rgba(0, 255, 102, 0.4);
+    color: #00ff66;
+}
+
+/* 🔴 DERROTA: Fuente roja y borde sutil */
+.team-match-card.res-loss {
+    border-color: rgba(255, 51, 85, 0.4);
+    background: linear-gradient(90deg, rgba(255, 51, 85, 0.06), rgba(255, 51, 85, 0.02));
+}
+.team-match-card.res-loss .m-team {
+    color: #ff3355 !important;
+    text-shadow: 0 0 8px rgba(255, 51, 85, 0.4);
+    font-weight: 700;
+}
+.team-match-card.res-loss .m-score {
+    border-color: rgba(255, 51, 85, 0.4);
+    color: #ff3355;
+}
+
+/* 🔵 EMPATE: Fuente azul/cian y borde sutil */
+.team-match-card.res-draw {
+    border-color: rgba(0, 229, 255, 0.4);
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.06), rgba(0, 229, 255, 0.02));
+}
+.team-match-card.res-draw .m-team {
+    color: #00e5ff !important;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+    font-weight: 700;
+}
+.team-match-card.res-draw .m-score {
+    border-color: rgba(0, 229, 255, 0.4);
+    color: #00e5ff;
 }
 
 .stats-card {
@@ -997,14 +1077,12 @@ details:not([open]) summary.panel-header::after {
         font-size: 1rem;
     }
 
-    .chart-wrapper {
-        height: 280px;
-    }
-    .chart-scroll-container {
-        /* min-width managed dynamically by js */
-    }
-    .team-evolution-controls .control-item {
+    .team-results-controls .control-item {
         min-width: 100%;
+    }
+
+    .team-tournaments-grid {
+        grid-template-columns: 1fr;
     }
 }
 
