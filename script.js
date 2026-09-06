@@ -33,67 +33,9 @@ let rawMatches = [];     // Datos crudos del CSV
 let categories = [];     // Lista de categorías únicas (2014, 2015, etc)
 let currentMode = 'standard'; // Modos: 'standard' (tablas), 'acumulada', 'estadisticas'
 
-// Estado de Gráficos de Evolución
-let chartGF = null;          // Instancia Chart.js - Goles Convertidos
-let chartGC = null;          // Instancia Chart.js - Goles Recibidos
-let selectedTeamChart = null; // Equipo seleccionado
-let selectedTeamCatChart = null; // Categoría seleccionada
-
-// Cache de imágenes de logos para el plugin de Chart.js
-const logoImgCache = {};
-
-function getOrLoadLogo(path, onLoadCb) {
-    if (!path) return null;
-    if (!logoImgCache[path]) {
-        const img = new Image();
-        img.src = path;
-        if (onLoadCb) img.onload = onLoadCb;
-        logoImgCache[path] = img;
-    } else if (onLoadCb && logoImgCache[path].complete) {
-        // Ya cargado, ejecutar callback
-        onLoadCb();
-    }
-    return logoImgCache[path];
-}
-
-// Plugin de Chart.js: dibuja escudos de rivales bajo el eje X
-const rivalLogoPlugin = {
-    id: 'rivalLogos',
-    afterDraw(chart) {
-        const logos = chart.config.data._rivalLogos;
-        if (!logos || logos.length === 0) return;
-        const ctx = chart.ctx;
-        const xAxis = chart.scales.x;
-        if (!xAxis) return;
-        
-        // Espacio para los escudos
-        const logoY = xAxis.bottom + 5;
-        const maxSize = 25;
-        
-        xAxis.ticks.forEach((tick, i) => {
-            const logoPath = logos[i];
-            if (!logoPath) return;
-            const x = xAxis.getPixelForTick(i);
-            const img = logoImgCache[logoPath];
-            if (img && img.complete && img.naturalWidth > 0) {
-                // Mantener proporción original de cada escudo
-                const aspect = img.naturalWidth / img.naturalHeight;
-                let drawW = maxSize;
-                let drawH = maxSize;
-                if (aspect > 1) {
-                    drawH = maxSize / aspect;
-                } else {
-                    drawW = maxSize * aspect;
-                }
-
-                ctx.save();
-                // Dibujar escudo sin recortes
-                ctx.drawImage(img, x - drawW / 2, logoY + (maxSize - drawH) / 2, drawW, drawH);
-                ctx.restore();
-            }
-        });
-    }
-};
+// Estado de Resultados por Equipo en Estadísticas
+let selectedTeamStats = null;   // Equipo seleccionado
+let selectedTeamCatStats = null; // Categoría seleccionada
 
 // Lista Maestra de los 9 Clubes que participan en la liga
 const CLUBS_LIST = [
@@ -266,28 +208,28 @@ async function init() {
         });
     }
 
-    // --- SELECTORES PARA GRÁFICOS ---
-    const teamChartSel = document.getElementById('teamChartSelect');
-    if (teamChartSel) {
-        teamChartSel.addEventListener('change', () => {
-            selectedTeamChart = teamChartSel.value;
-            updateTeamCharts();
+    // --- SELECTORES PARA RESULTADOS EN ESTADÍSTICAS ---
+    const teamStatsSel = document.getElementById('teamStatsSelect');
+    if (teamStatsSel) {
+        teamStatsSel.addEventListener('change', () => {
+            selectedTeamStats = teamStatsSel.value;
+            updateTeamResults();
 
             // Registrar evento al seleccionar equipo en estadísticas
-            if (selectedTeamChart && typeof gtag === 'function') {
+            if (selectedTeamStats && typeof gtag === 'function') {
                 gtag('event', 'select_team_stats', {
                     'event_category': 'Engagement',
-                    'event_label': selectedTeamChart
+                    'event_label': selectedTeamStats
                 });
             }
         });
     }
 
-    const teamCatChartSel = document.getElementById('teamCatChartSelect');
-    if (teamCatChartSel) {
-        teamCatChartSel.addEventListener('change', () => {
-            selectedTeamCatChart = teamCatChartSel.value;
-            updateTeamCharts();
+    const teamCatStatsSel = document.getElementById('teamCatStatsSelect');
+    if (teamCatStatsSel) {
+        teamCatStatsSel.addEventListener('change', () => {
+            selectedTeamCatStats = teamCatStatsSel.value;
+            updateTeamResults();
         });
     }
 }
@@ -362,30 +304,47 @@ function switchMode(mode) {
  */
 async function fetchData() {
     console.log("Sincronizando con base de datos...");
-    // Reordenamos: 'corsproxy' primero para evitar errores 522/CORS en consola por parte de codetabs (cloud)
-    const proxies = ['corsproxy', 'allorigins', 'cloud'];
     let success = false;
+    const bustedUrl = `${DATA_URL}&_t=${Date.now()}`;
 
-    for (const p of proxies) {
-        try {
-            const bustedUrl = `${DATA_URL}&_t=${Date.now()}`;
-            let url = getProxy(bustedUrl, p);
-            const response = await fetch(url);
-            if (!response.ok) throw new Error();
+    // 1. Intento Directo (Google Sheets envía Access-Control-Allow-Origin: * nativamente)
+    try {
+        const response = await fetch(bustedUrl);
+        if (response.ok) {
             const text = await response.text();
-
             if (text.includes(",") || text.includes("\n")) {
                 rawMatches = parseCSV(text);
                 success = true;
-                console.log("✅ Datos sincronizados via " + p);
-                break;
+                console.log("✅ Datos sincronizados directamente con Google Sheets");
             }
-        } catch (e) {
-            // Falla silenciosa para probar el siguiente proxy
+        }
+    } catch (e) {
+        console.warn("Conexión directa no disponible, intentando proxies de respaldo...", e);
+    }
+
+    // 2. Si la conexión directa falla, intentar rotación de proxies
+    if (!success) {
+        const proxies = ['corsproxy', 'allorigins', 'cloud'];
+        for (const p of proxies) {
+            try {
+                let url = getProxy(bustedUrl, p);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error();
+                const text = await response.text();
+
+                if (text.includes(",") || text.includes("\n")) {
+                    rawMatches = parseCSV(text);
+                    success = true;
+                    console.log("✅ Datos sincronizados via " + p);
+                    break;
+                }
+            } catch (e) {
+                // Falla silenciosa para probar el siguiente proxy
+            }
         }
     }
 
-    // Respaldo de seguridad final
+    // 3. Respaldo de seguridad final con AllOrigins JSON
     if (!success) {
         try {
             const backupUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(DATA_URL)}`;
@@ -601,32 +560,19 @@ function renderStats() {
             </div>`;
     }).join('');
 
-    // --- GRÁFICOS DE EVOLUCIÓN POR EQUIPO ---
-    populateTeamChartSelectors();
-    updateTeamCharts();
+    // --- RESULTADOS POR EQUIPO (APERTURA Y CLAUSURA) ---
+    populateTeamStatsSelectors();
+    updateTeamResults();
 }
 
 /**
- * Actualiza los gráficos independientemente basándose en sus propios selectores
+ * Actualiza los resultados del equipo seleccionado basándose en sus selectores
  */
-function updateTeamCharts() {
-    let chartMatches = rawMatches;
-    
-    selectedTeamCatChart = document.getElementById('teamCatChartSelect')?.value || selectedTeamCatChart;
-    selectedTeamChart = document.getElementById('teamChartSelect')?.value || selectedTeamChart;
+function updateTeamResults() {
+    selectedTeamCatStats = document.getElementById('teamCatStatsSelect')?.value || selectedTeamCatStats;
+    selectedTeamStats = document.getElementById('teamStatsSelect')?.value || selectedTeamStats;
 
-    if (selectedTeamCatChart) {
-        chartMatches = chartMatches.filter(m => m.Categoria === selectedTeamCatChart);
-    }
-
-    const topTorneo = tournamentSelect.value;
-    if (topTorneo === "Apertura") {
-        chartMatches = chartMatches.filter(m => (m.Torneo || "Apertura").trim().toLowerCase() === "apertura");
-    } else if (topTorneo === "Clausura") {
-        chartMatches = chartMatches.filter(m => (m.Torneo || "").trim().toLowerCase() === "clausura");
-    }
-
-    renderTeamCharts(chartMatches);
+    renderTeamResults();
 }
 
 /**
@@ -794,211 +740,107 @@ function renderMatches() {
 }
 
 /**
- * Llena los selectores de los gráficos de evolución si están vacíos
+ * Llena los selectores de equipo y categoría en estadísticas
  */
-function populateTeamChartSelectors() {
-    const teamChartSel = document.getElementById('teamChartSelect');
-    if (teamChartSel && teamChartSel.options.length === 0) {
-        const placeholder = document.createElement('option');
-        placeholder.value = "";
-        placeholder.textContent = "Seleccione Equipo";
-        placeholder.disabled = true;
-        placeholder.selected = true;
-        teamChartSel.appendChild(placeholder);
-
-        CLUBS_LIST.sort().forEach(t => {
+function populateTeamStatsSelectors() {
+    const teamStatsSel = document.getElementById('teamStatsSelect');
+    if (teamStatsSel && teamStatsSel.options.length === 0) {
+        CLUBS_LIST.forEach((t, idx) => {
             const option = document.createElement('option');
             option.value = t;
             option.textContent = t;
-            teamChartSel.appendChild(option);
+            if (idx === 0) option.selected = true;
+            teamStatsSel.appendChild(option);
         });
-        selectedTeamChart = "";
+        selectedTeamStats = CLUBS_LIST[0];
     }
 
-    const teamCatChartSel = document.getElementById('teamCatChartSelect');
-    if (teamCatChartSel && teamCatChartSel.options.length === 0) {
-        const placeholder = document.createElement('option');
-        placeholder.value = "";
-        placeholder.textContent = "Seleccione Categoría";
-        placeholder.disabled = true;
-        placeholder.selected = true;
-        teamCatChartSel.appendChild(placeholder);
-
-        categories.forEach(cat => {
+    const teamCatStatsSel = document.getElementById('teamCatStatsSelect');
+    if (teamCatStatsSel && teamCatStatsSel.options.length === 0) {
+        categories.forEach((cat, idx) => {
             const option = document.createElement('option');
             option.value = cat;
             option.textContent = cat;
-            teamCatChartSel.appendChild(option);
+            if (cat === categorySelect.value || idx === 0) option.selected = true;
+            teamCatStatsSel.appendChild(option);
         });
-        selectedTeamCatChart = "";
+        selectedTeamCatStats = teamCatStatsSel.value || categories[0];
     }
 }
 
 /**
- * Renderiza los gráficos de evolución (Goles Favor y Goles Contra) para el equipo seleccionado
+ * Renderiza los resultados del equipo seleccionado separados en Torneo Apertura y Torneo Clausura
  */
-function renderTeamCharts(matchesArray) {
-    if (!selectedTeamChart || !selectedTeamCatChart) {
-        if (chartGF) { chartGF.destroy(); chartGF = null; }
-        if (chartGC) { chartGC.destroy(); chartGC = null; }
+function renderTeamResults() {
+    const aperturaList = document.getElementById('aperturaResultsList');
+    const clausuraList = document.getElementById('clausuraResultsList');
+    if (!aperturaList || !clausuraList) return;
+
+    if (!selectedTeamStats || !selectedTeamCatStats) {
+        aperturaList.innerHTML = `<p class="empty-msg">Seleccione equipo y categoría.</p>`;
+        clausuraList.innerHTML = `<p class="empty-msg">Seleccione equipo y categoría.</p>`;
         return;
     }
 
-    // Filtrar todos los partidos del equipo (jugados y pendientes), excluyendo fechas libres
-    const teamMatches = matchesArray.filter(m => 
-        (m.Local === selectedTeamChart || m.Visitante === selectedTeamChart) &&
+    // Filtrar todos los partidos del equipo en la categoría seleccionada
+    const teamMatches = rawMatches.filter(m => 
+        m.Categoria === selectedTeamCatStats &&
+        (m.Local === selectedTeamStats || m.Visitante === selectedTeamStats) &&
         !isLibre(m.Local) && !isLibre(m.Visitante)
     );
 
-    // Ordenar por Torneo y luego por fecha (extraer número)
-    teamMatches.sort((a, b) => {
-        const tA = (a.Torneo || "Apertura").trim().toLowerCase() === "clausura" ? 2 : 1;
-        const tB = (b.Torneo || "Apertura").trim().toLowerCase() === "clausura" ? 2 : 1;
-        if (tA !== tB) return tA - tB;
-        
-        const numA = parseInt((a.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
-        const numB = parseInt((b.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
-        return numA - numB;
-    });
+    const aperturaMatches = teamMatches.filter(m => (m.Torneo || "Apertura").trim().toLowerCase() === "apertura");
+    const clausuraMatches = teamMatches.filter(m => (m.Torneo || "").trim().toLowerCase() === "clausura");
 
-    const labels = [];
-    const gfData = [];
-    const gcData = [];
-    const rivalLogos = [];
+    const renderList = (matches, container) => {
+        if (matches.length === 0) {
+            container.innerHTML = `<p class="empty-msg">No hay partidos registrados.</p>`;
+            return;
+        }
 
-    teamMatches.forEach(m => {
-        const num = parseInt((m.Fecha || "0").replace(/[^0-9]/g, '')) || "?";
-        const isClausura = (m.Torneo || "Apertura").trim().toLowerCase() === "clausura";
-        labels.push((isClausura ? "CF" : "AF") + num);
-        
-        let gf = null, gc = null, rival = "";
-        const isPlayed = (m.Estado || "").trim().toLowerCase() === "jugado" && m.Goles_L !== "" && m.Goles_V !== "";
-        
-        if (m.Local === selectedTeamChart) {
-            rival = m.Visitante;
+        // Ordenar cronológicamente por número de Fecha
+        matches.sort((a, b) => {
+            const numA = parseInt((a.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
+            const numB = parseInt((b.Fecha || "0").replace(/[^0-9]/g, '')) || 0;
+            return numA - numB;
+        });
+
+        container.innerHTML = matches.map(m => {
+            const est = (m.Estado || "").trim().toLowerCase();
+            const isPlayed = est === "jugado" && m.Goles_L !== "" && m.Goles_V !== "";
+            const isParcial = est === "no finalizado";
+
+            let middleContent = `<div class="m-vs">VS</div>`;
+            let resultClass = "";
+
             if (isPlayed) {
-                gf = parseInt(m.Goles_L);
-                gc = parseInt(m.Goles_V);
-                if (isNaN(gf)) gf = 0;
-                if (isNaN(gc)) gc = 0;
+                const gl = parseInt(m.Goles_L);
+                const gv = parseInt(m.Goles_V);
+                middleContent = `<div class="m-score">${gl} - ${gv}</div>`;
+                
+                const isLocal = (m.Local === selectedTeamStats);
+                if (gl === gv) {
+                    resultClass = "res-draw"; // Empate -> Azul
+                } else if ((isLocal && gl > gv) || (!isLocal && gv > gl)) {
+                    resultClass = "res-win";  // Victoria del equipo seleccionado -> Verde
+                } else {
+                    resultClass = "res-loss"; // Derrota del equipo seleccionado -> Rojo
+                }
+            } else if (isParcial && m.Goles_L !== "" && m.Goles_V !== "") {
+                middleContent = `<div class="m-score-parcial"><span class="badge-parcial">PARCIAL</span><span>${m.Goles_L} - ${m.Goles_V}</span></div>`;
             }
-        } else {
-            rival = m.Local;
-            if (isPlayed) {
-                gf = parseInt(m.Goles_V);
-                gc = parseInt(m.Goles_L);
-                if (isNaN(gf)) gf = 0;
-                if (isNaN(gc)) gc = 0;
-            }
-        }
-        
-        gfData.push(gf);
-        gcData.push(gc);
-        
-        const logoPath = TEAM_LOGOS[rival] || "";
-        rivalLogos.push(logoPath);
-        if (logoPath) {
-            getOrLoadLogo(logoPath, () => {
-                if (chartGF) chartGF.update();
-                if (chartGC) chartGC.update();
-            });
-        }
-    });
 
-    const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        barPercentage: 0.65,
-        categoryPercentage: 0.8,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleFont: { family: 'Orbitron' },
-                bodyFont: { family: 'Rajdhani', size: 14 }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                ticks: { color: '#ccc', stepSize: 1 }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { color: '#aaa', font: { family: 'Rajdhani', size: 12 } }
-            }
-        },
-        layout: {
-            padding: { bottom: 40 }
-        }
+            const extraClass = isParcial ? "match-parcial" : "";
+
+            return `
+                <div class="team-match-card ${resultClass} ${extraClass}">
+                    <div class="m-team">${getLogoHTML(m.Local, "match-logo")} <span>${m.Local}</span></div>
+                    ${middleContent}
+                    <div class="m-team">${getLogoHTML(m.Visitante, "match-logo")} <span>${m.Visitante}</span></div>
+                </div>`;
+        }).join('');
     };
 
-    const scrollContainers = document.querySelectorAll('.chart-scroll-container');
-    const dynamicWidth = Math.max(100, (labels.length / 5) * 100);
-    scrollContainers.forEach(container => {
-        container.style.minWidth = dynamicWidth + '%';
-    });
-
-    const ctxGF = document.getElementById('chartGF');
-    if(!ctxGF) return;
-    const ctx1 = ctxGF.getContext('2d');
-    if (chartGF) chartGF.destroy();
-    
-    const gradGF = ctx1.createLinearGradient(0, 0, 0, 400);
-    gradGF.addColorStop(0, 'rgba(0, 255, 102, 0.5)');
-    gradGF.addColorStop(1, 'rgba(0, 255, 102, 0.0)');
-
-    chartGF = new Chart(ctx1, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Goles Favor',
-                data: gfData,
-                borderColor: '#00ff66',
-                backgroundColor: gradGF,
-                borderWidth: 2,
-                borderRadius: 6,
-                borderSkipped: 'bottom',
-                maxBarThickness: 35,
-                categoryPercentage: 0.7,
-                barPercentage: 0.9
-            }],
-            _rivalLogos: rivalLogos
-        },
-        options: commonOptions,
-        plugins: [rivalLogoPlugin]
-    });
-
-    const ctxGC = document.getElementById('chartGC');
-    if(!ctxGC) return;
-    const ctx2 = ctxGC.getContext('2d');
-    if (chartGC) chartGC.destroy();
-
-    const gradGC = ctx2.createLinearGradient(0, 0, 0, 400);
-    gradGC.addColorStop(0, 'rgba(255, 51, 102, 0.5)');
-    gradGC.addColorStop(1, 'rgba(255, 51, 102, 0.0)');
-
-    chartGC = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Goles Contra',
-                data: gcData,
-                borderColor: '#ff3366',
-                backgroundColor: gradGC,
-                borderWidth: 2,
-                borderRadius: 6,
-                borderSkipped: 'bottom',
-                maxBarThickness: 35,
-                categoryPercentage: 0.7,
-                barPercentage: 0.9
-            }],
-            _rivalLogos: rivalLogos
-        },
-        options: commonOptions,
-        plugins: [rivalLogoPlugin]
-    });
+    renderList(aperturaMatches, aperturaList);
+    renderList(clausuraMatches, clausuraList);
 }
